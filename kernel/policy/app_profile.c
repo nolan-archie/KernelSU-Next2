@@ -209,8 +209,10 @@ int escape_with_root_profile(void)
 
     commit_creds(cred);
 
+#ifdef TIF_SECCOMP
     if (likely(test_thread_flag(TIF_SECCOMP)))
         disable_seccomp();
+#endif
 
     if (profile->flags & FLAG_KSU_NO_NEW_PRIVS) {
         set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
