@@ -1,0 +1,52 @@
+name: Weekly Upstream Sync
+
+on:
+  schedule:
+    # Every Sunday at 03:00 UTC — adjust as you like
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and merge upstream
+        id: sync
+        run: |
+          git remote add upstream https://github.com/pershoot/KernelSU-Next.git
+          git fetch upstream dev
+          BEFORE=$(git rev-parse HEAD)
+          git merge --no-edit upstream/dev
+          AFTER=$(git rev-parse HEAD)
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push synced changes
+        if: steps.sync.outputs.changed == 'true'
+        run: git push origin dev
+
+  build:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    uses: ./.github/workflows/build-manager-ci.yml
+    secrets: inherit
