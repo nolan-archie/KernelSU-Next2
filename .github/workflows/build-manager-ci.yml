@@ -21,6 +21,8 @@ on:
       - 'userspace/**'
   workflow_call:
   workflow_dispatch:
+  repository_dispatch:
+    types: [kernel-build-complete]
 
 jobs:
   build-lkm:
